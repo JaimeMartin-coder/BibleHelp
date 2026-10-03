@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A Word for the Moment</title>
+<meta name="description" content="Pick how you're feeling, answer two quick questions, and get three New Testament verses (KJV) chosen for the moment.">
+<meta property="og:title" content="A Word for the Moment">
+<meta property="og:description" content="Three New Testament verses chosen for how you're feeling today.">
+<meta property="og:image" content="banner.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2326305f'/%3E%3Ccircle cx='32' cy='40' r='13' fill='%23f6d28a'/%3E%3Crect y='40' width='64' height='24' fill='%23161c3d'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #eef1f7;
+    --bg-soft: #e3e8f2;
+    --surface: #ffffff;
+    --ink: #172042;
+    --ink-soft: #4a5578;
+    --line: #cfd6e6;
+    --accent: #b8741a;
+    --accent-ink: #ffffff;
+    --accent-soft: #fbeed6;
+    --focus: #2b4fd8;
+    --alert-bg: #fff3e0;
+    --alert-line: #e0a24a;
+    --serif: "Lora", Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    box-sizing: border-box;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1530; --bg-soft: #151d3f; --surface: #19224a; --ink: #eef0fa; --ink-soft: #aab3d4;
+      --line: #2c3866; --accent: #f1b765; --accent-ink: #1a1405; --accent-soft: #2a2748;
+      --focus: #9db4ff; --alert-bg: #2e2638; --alert-line: #c98a45;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1530; --bg-soft: #151d3f; --surface: #19224a; --ink: #eef0fa; --ink-soft: #aab3d4;
+    --line: #2c3866; --accent: #f1b765; --accent-ink: #1a1405; --accent-soft: #2a2748;
+    --focus: #9db4ff; --alert-bg: #2e2638; --alert-line: #c98a45;
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.55;
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 20px 18px 56px; }
+  .banner { display: block; width: 100%; height: auto; border-radius: 18px; aspect-ratio: 1200 / 630; background: #26305f; }
+  .topbar { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+  .theme-btn {
+    font: inherit; font-size: .85rem; color: var(--ink-soft); background: transparent;
+    border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; cursor: pointer;
+  }
+  .theme-btn:hover { color: var(--ink); border-color: var(--ink-soft); }
+
+  :focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; border-radius: 6px; }
+
+  main { margin-top: 28px; }
+  h1, h2, h3 { font-family: var(--serif); font-weight: 600; line-height: 1.25; margin: 0; }
+  .prompt { font-size: clamp(1.5rem, 4.6vw, 2rem); margin-bottom: 6px; }
+  .hint { color: var(--ink-soft); margin: 0 0 22px; max-width: 54ch; }
+
+  .progress { display: flex; gap: 8px; align-items: center; margin: 0 0 18px; color: var(--ink-soft); font-size: .9rem; }
+  .dots { display: flex; gap: 6px; }
+  .dot { width: 26px; height: 6px; border-radius: 3px; background: var(--line); }
+  .dot.on { background: var(--accent); }
+
+  .choices { display: grid; gap: 10px; grid-template-columns: repeat(2, 1fr); }
+  .choices.single { grid-template-columns: 1fr; }
+  @media (max-width: 460px) { .choices { grid-template-columns: 1fr; } }
+  .choice {
+    font: inherit; font-size: 1.02rem; text-align: left; color: var(--ink);
+    background: var(--surface); border: 1.5px solid var(--line); border-radius: 14px;
+    padding: 15px 18px; cursor: pointer; min-height: 56px;
+    transition: border-color .15s, background-color .15s, transform .1s;
+  }
+  .choice:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .choice:active { transform: scale(.985); }
+  .choice .sub { display: block; font-size: .85rem; color: var(--ink-soft); margin-top: 2px; }
+
+  .nav { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+  .link-btn {
+    font: inherit; color: var(--ink-soft); background: none; border: none; padding: 8px 2px;
+    cursor: pointer; text-decoration: underline; text-underline-offset: 3px;
+  }
+  .link-btn:hover { color: var(--ink); }
+
+  .results { display: grid; gap: 16px; margin-top: 8px; }
+  .verse {
+    background: var(--surface); border: 1px solid var(--line);
+    border-left: 6px solid var(--accent); border-radius: 6px 16px 16px 6px;
+    padding: 20px 22px 16px;
+  }
+  .verse h3 { font-size: 1.1rem; color: var(--accent); margin-bottom: 8px; }
+  .verse blockquote {
+    margin: 0; font-family: var(--serif); font-size: clamp(1.12rem, 3.6vw, 1.32rem);
+    line-height: 1.65; max-width: 62ch;
+  }
+  .verse .meaning {
+    margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--line);
+    font-size: 1rem; line-height: 1.6; max-width: 62ch;
+  }
+  .verse .meaning strong { font-weight: 600; }
+  .verse .why { margin: 12px 0 0; font-size: .88rem; color: var(--ink-soft); }
+  .verse .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 6px; }
+  .more-link { font-size: .85rem; color: var(--ink-soft); text-underline-offset: 3px; }
+  .more-link:hover { color: var(--ink); }
+  .copy-btn {
+    font: inherit; font-size: .85rem; color: var(--ink-soft); background: none;
+    border: 1px solid var(--line); border-radius: 999px; padding: 5px 14px; cursor: pointer;
+  }
+  .copy-btn:hover { color: var(--ink); border-color: var(--ink-soft); }
+
+  .btn {
+    font: inherit; font-weight: 600; color: var(--accent-ink); background: var(--accent);
+    border: none; border-radius: 999px; padding: 12px 22px; cursor: pointer; min-height: 48px;
+  }
+  .btn:hover { filter: brightness(1.07); }
+  .btn.ghost { background: transparent; color: var(--ink); border: 1.5px solid var(--line); }
+  .btn.ghost:hover { border-color: var(--ink-soft); filter: none; }
+
+  .alert {
+    background: var(--alert-bg); border: 1.5px solid var(--alert-line); border-radius: 14px;
+    padding: 14px 18px; margin-bottom: 18px; font-size: .95rem;
+  }
+  .alert strong { font-family: var(--serif); }
+
+  .recap { color: var(--ink-soft); margin: 0 0 18px; }
+
+  footer { margin-top: 40px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--ink-soft); font-size: .84rem; }
+  footer p { margin: 0 0 8px; max-width: 64ch; }
+
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+  .enter { animation: rise .35s ease-out both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) {
+    .enter { animation: none; }
+    .choice { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch between light and dark mode">Light / dark</button>
+  </div>
+
+  <img class="banner" src="banner.png" alt="A sunrise over quiet hills with the title A Word for the Moment" onerror="this.style.display='none'">
+
+  <main id="app" aria-live="polite"></main>
+
+  <footer>
+    <p>Scripture quotations are from the King James Version (KJV), which is in the public domain.</p>
+    <p>The "In plain English" notes are short summaries written to reflect mainstream, long-standing Christian interpretation and the verse's original context, rather than any one denomination's distinctive views. They are a starting point for reflection, not a full commentary. A pastor or trusted teacher can help you go deeper.</p>
+    <p>This is a small reflection tool, not a substitute for a pastor, counselor, or doctor. If you are in crisis or thinking about hurting yourself, call or text 988 (U.S. Suicide &amp; Crisis Lifeline), or contact your local emergency number.</p>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- Tag labels (shown as "Speaks to...") ---------- */
+  var TAG_LABEL = {
+    calm: "calm", forgive: "forgiveness", wisdom: "wisdom", perspective: "perspective",
+    comfort: "comfort", hope: "hope", strength: "strength", rest: "rest", presence: "God's nearness",
+    worth: "your worth", grace: "grace", trust: "trust", patience: "patience",
+    community: "community", gratitude: "gratitude", faith: "faith", courage: "courage",
+    purpose: "purpose", provision: "provision", joy: "joy"
+  };
+
+  /* ---------- Feelings and follow-up questions ---------- */
+  var FEELINGS = [
+    { id: "angry", label: "I'm feeling angry",
+      qs: [
+        { q: "What's behind the anger?", opts: [
+          ["Someone treated me unfairly", ["forgive", "perspective"]],
+          ["A situation isn't going my way", ["calm", "trust"]],
+          ["I'm angry at myself", ["grace", "forgive"]],
+          ["It's built up over time", ["calm", "rest"]] ] },
+        { q: "What do you need most right now?", opts: [
+          ["To calm down before I react", ["calm", "wisdom"]],
+          ["To let go and forgive", ["forgive", "grace"]],
+          ["Wisdom for what to say or do", ["wisdom"]],
+          ["To know it will be okay", ["trust", "hope"]] ] } ] },
+
+    { id: "badday", label: "I'm having a bad day",
+      qs: [
+        { q: "What kind of day has it been?", opts: [
+          ["Everything went wrong", ["patience", "perspective"]],
+          ["Someone was unkind to me", ["forgive", "comfort"]],
+          ["I made a mistake", ["grace", "forgive"]],
+          ["I'm just tired and drained", ["rest", "strength"]] ] },
+        { q: "What do you need tonight?", opts: [
+          ["A fresh start", ["grace", "hope"]],
+          ["Encouragement", ["strength", "hope"]],
+          ["Rest", ["rest", "calm"]],
+          ["A better perspective", ["perspective", "trust"]] ] } ] },
+
+    { id: "sad", label: "I'm feeling sad",
+      qs: [
+        { q: "What's weighing on you?", opts: [
+          ["I lost someone or something", ["comfort", "hope"]],
+          ["I feel down and I'm not sure why", ["presence", "hope", "rest"]],
+          ["A relationship hurt me", ["comfort", "grace"]],
+          ["Things feel hopeless", ["hope", "strength"], "crisis"] ] },
+        { q: "What would help most?", opts: [
+          ["Comfort", ["comfort"]],
+          ["Hope for what's ahead", ["hope"]],
+          ["Knowing I'm not alone", ["presence"]],
+          ["Strength to keep going", ["strength", "patience"]] ] } ] },
+
+    { id: "anxious", label: "I'm feeling anxious",
+      qs: [
+        { q: "What's the worry about?", opts: [
+          ["The future, and what might happen", ["trust", "calm"]],
+          ["Money or having enough", ["provision", "trust"]],
+          ["Health, or someone I love", ["comfort", "trust"]],
+          ["Everything and nothing at once", ["calm", "rest"]] ] },
+        { q: "What do you need?", opts: [
+          ["Peace in my mind", ["calm"]],
+          ["Trust that God has this", ["trust"]],
+          ["Rest", ["rest"]],
+          ["Courage", ["courage"]] ] } ] },
+
+    { id: "overwhelmed", label: "I'm overwhelmed",
+      qs: [
+        { q: "What's piling up?", opts: [
+          ["Too much work or responsibility", ["rest", "strength"]],
+          ["Problems at home or with family", ["wisdom", "calm"]],
+          ["Many things at once, and I can't sort them", ["wisdom", "calm"]],
+          ["I'm just exhausted", ["rest", "strength"]] ] },
+        { q: "What do you need?", opts: [
+          ["Rest", ["rest"]],
+          ["Strength", ["strength"]],
+          ["Clarity", ["wisdom"]],
+          ["Help carrying it", ["community", "rest"]] ] } ] },
+
+    { id: "lonely", label: "I'm feeling lonely",
+      qs: [
+        { q: "What does the loneliness feel like?", opts: [
+          ["Nobody understands me", ["presence", "comfort"]],
+          ["I'm far from people I love", ["presence", "community"]],
+          ["I feel left out or rejected", ["worth", "presence"]],
+          ["I'm in a new or quiet season of life", ["hope", "presence"]] ] },
+        { q: "What would help?", opts: [
+          ["To know God is near", ["presence"]],
+          ["To know I matter", ["worth"]],
+          ["To connect with other people", ["community"]],
+          ["Hope that this will pass", ["hope"]] ] } ] },
+
+    { id: "discouraged", label: "I'm discouraged",
+      qs: [
+        { q: "What's discouraging you?", opts: [
+          ["I'm working hard and not seeing results", ["patience", "purpose"]],
+          ["I failed or fell short", ["grace", "hope"]],
+          ["I'm comparing myself to others", ["worth", "grace"]],
+          ["I feel stuck", ["hope", "wisdom"]] ] },
+        { q: "What do you need?", opts: [
+          ["Motivation to keep going", ["strength", "purpose"]],
+          ["Patience", ["patience"]],
+          ["Reassurance", ["worth", "trust"]],
+          ["A reminder that my effort matters", ["purpose"]] ] } ] },
+
+    { id: "guilty", label: "I feel guilty or ashamed",
+      qs: [
+        { q: "What's on your heart?", opts: [
+          ["I did something wrong", ["grace", "forgive"]],
+          ["I hurt someone", ["forgive", "wisdom"]],
+          ["I keep repeating the same mistake", ["strength", "grace"]],
+          ["I feel unworthy", ["worth", "grace"]] ] },
+        { q: "What do you need?", opts: [
+          ["Forgiveness", ["forgive", "grace"]],
+          ["A fresh start", ["hope", "grace"]],
+          ["Strength to change", ["strength"]],
+          ["To know I'm still loved", ["worth"]] ] } ] },
+
+    { id: "afraid", label: "I'm afraid",
+      qs: [
+        { q: "What are you afraid of?", opts: [
+          ["Something coming up soon", ["courage", "trust"]],
+          ["Losing someone or something", ["comfort", "presence"]],
+          ["Failing", ["strength", "courage"]],
+          ["I can't quite name it", ["calm", "presence"]] ] },
+        { q: "What do you need?", opts: [
+          ["Courage", ["courage"]],
+          ["Safety", ["presence", "trust"]],
+          ["Peace", ["calm"]],
+          ["To know God is with me", ["presence"]] ] } ] },
+
+    { id: "doubting", label: "I'm doubting",
+      qs: [
+        { q: "What kind of doubt is it?", opts: [
+          ["Is God really there?", ["faith", "presence"]],
+          ["Why is God allowing this?", ["trust", "comfort"]],
+          ["I'm not sure I believe enough", ["faith", "grace"]],
+          ["I feel distant from God", ["presence", "grace"]] ] },
+        { q: "What would help?", opts: [
+          ["Understanding", ["wisdom"]],
+          ["Reassurance", ["trust", "presence"]],
+          ["Stronger faith", ["faith"]],
+          ["Permission to be honest about it", ["faith", "grace"]] ] } ] },
+
+    { id: "grateful", label: "I'm feeling grateful",
+      qs: [
+        { q: "What are you thankful for?", opts: [
+          ["The people in my life", ["community", "gratitude"]],
+          ["Something good happened", ["gratitude", "joy"]],
+          ["Getting through a hard time", ["hope", "strength"]],
+          ["Just being alive today", ["gratitude", "joy"]] ] },
+        { q: "What do you want to do with it?", opts: [
+          ["Give thanks", ["gratitude"]],
+          ["Rejoice", ["joy"]],
+          ["Share it with others", ["community", "purpose"]],
+          ["Stay humble and keep growing", ["purpose", "wisdom"]] ] } ] }
+  ];
+
+  /* ---------- Verses (King James Version, public domain) ---------- */
+  var V = [
+    ["James 1:19-20", "Wherefore, my beloved brethren, let every man be swift to hear, slow to speak, slow to wrath: For the wrath of man worketh not the righteousness of God.", ["angry","badday"], ["calm","wisdom"]],
+    ["Ephesians 4:26-27", "Be ye angry, and sin not: let not the sun go down upon your wrath: Neither give place to the devil.", ["angry"], ["calm","rest"]],
+    ["Ephesians 4:31-32", "Let all bitterness, and wrath, and anger, and clamour, and evil speaking, be put away from you, with all malice: And be ye kind one to another, tenderhearted, forgiving one another, even as God for Christ's sake hath forgiven you.", ["angry","guilty","badday"], ["forgive","grace"]],
+    ["Romans 12:17-18", "Recompense to no man evil for evil. Provide things honest in the sight of all men. If it be possible, as much as lieth in you, live peaceably with all men.", ["angry"], ["wisdom","forgive","perspective"]],
+    ["Romans 12:21", "Be not overcome of evil, but overcome evil with good.", ["angry","badday"], ["perspective","strength","wisdom"]],
+    ["Colossians 3:13", "Forbearing one another, and forgiving one another, if any man have a quarrel against any: even as Christ forgave you, so also do ye.", ["angry","guilty"], ["forgive","grace"]],
+    ["Matthew 5:44", "But I say unto you, Love your enemies, bless them that curse you, do good to them that hate you, and pray for them which despitefully use you, and persecute you;", ["angry"], ["forgive","perspective"]],
+    ["Luke 6:37", "Judge not, and ye shall not be judged: condemn not, and ye shall not be condemned: forgive, and ye shall be forgiven:", ["angry","guilty"], ["forgive","perspective"]],
+
+    ["Philippians 4:6-7", "Be careful for nothing; but in every thing by prayer and supplication with thanksgiving let your requests be made known unto God. And the peace of God, which passeth all understanding, shall keep your hearts and minds through Christ Jesus.", ["anxious","angry","afraid","overwhelmed"], ["calm","trust"]],
+    ["Philippians 4:8", "Finally, brethren, whatsoever things are true, whatsoever things are honest, whatsoever things are just, whatsoever things are pure, whatsoever things are lovely, whatsoever things are of good report; if there be any virtue, and if there be any praise, think on these things.", ["anxious","sad","badday"], ["calm","perspective"]],
+    ["1 Peter 5:7", "Casting all your care upon him; for he careth for you.", ["anxious","overwhelmed","badday"], ["trust","comfort","rest"]],
+    ["Matthew 6:34", "Take therefore no thought for the morrow: for the morrow shall take thought for the things of itself. Sufficient unto the day is the evil thereof.", ["anxious","overwhelmed"], ["calm","trust"]],
+    ["Matthew 6:33", "But seek ye first the kingdom of God, and his righteousness; and all these things shall be added unto you.", ["anxious"], ["trust","provision","purpose"]],
+    ["Philippians 4:19", "But my God shall supply all your need according to his riches in glory by Christ Jesus.", ["anxious"], ["provision","trust"]],
+    ["Luke 12:6-7", "Are not five sparrows sold for two farthings, and not one of them is forgotten before God? But even the very hairs of your head are all numbered. Fear not therefore: ye are of more value than many sparrows.", ["anxious","afraid","lonely"], ["worth","trust","comfort"]],
+    ["John 14:1", "Let not your heart be troubled: ye believe in God, believe also in me.", ["sad","anxious","afraid","doubting"], ["calm","trust","comfort"]],
+    ["John 14:27", "Peace I leave with you, my peace I give unto you: not as the world giveth, give I unto you. Let not your heart be troubled, neither let it be afraid.", ["anxious","afraid","angry","sad"], ["calm","comfort","presence"]],
+    ["Mark 4:39", "And he arose, and rebuked the wind, and said unto the sea, Peace, be still. And the wind ceased, and there was a great calm.", ["overwhelmed","afraid","anxious"], ["calm","rest","trust"]],
+    ["Colossians 3:15", "And let the peace of God rule in your hearts, to the which also ye are called in one body; and be ye thankful.", ["anxious","grateful"], ["calm","gratitude","community"]],
+
+    ["Matthew 11:28-30", "Come unto me, all ye that labour and are heavy laden, and I will give you rest. Take my yoke upon you, and learn of me; for I am meek and lowly in heart: and ye shall find rest unto your souls. For my yoke is easy, and my burden is light.", ["overwhelmed","badday","discouraged","anxious"], ["rest","comfort"]],
+    ["Galatians 6:2", "Bear ye one another's burdens, and so fulfil the law of Christ.", ["overwhelmed","lonely"], ["community"]],
+    ["James 1:5", "If any of you lack wisdom, let him ask of God, that giveth to all men liberally, and upbraideth not; and it shall be given him.", ["doubting","overwhelmed","discouraged","angry"], ["wisdom"]],
+    ["Hebrews 12:1-2", "...let us lay aside every weight, and the sin which doth so easily beset us, and let us run with patience the race that is set before us, Looking unto Jesus the author and finisher of our faith;", ["discouraged","overwhelmed"], ["patience","strength","purpose"]],
+
+    ["John 16:33", "These things I have spoken unto you, that in me ye might have peace. In the world ye shall have tribulation: but be of good cheer; I have overcome the world.", ["sad","badday","discouraged","overwhelmed"], ["hope","strength","perspective"]],
+    ["Romans 8:28", "And we know that all things work together for good to them that love God, to them who are the called according to his purpose.", ["badday","sad","discouraged","doubting","anxious"], ["trust","hope","perspective"]],
+    ["Romans 8:31", "What shall we then say to these things? If God be for us, who can be against us?", ["afraid","discouraged"], ["courage","trust"]],
+    ["Romans 8:38-39", "For I am persuaded, that neither death, nor life, nor angels, nor principalities, nor powers, nor things present, nor things to come, Nor height, nor depth, nor any other creature, shall be able to separate us from the love of God, which is in Christ Jesus our Lord.", ["sad","lonely","guilty","doubting","afraid"], ["presence","worth","comfort"]],
+    ["Romans 8:1", "There is therefore now no condemnation to them which are in Christ Jesus, who walk not after the flesh, but after the Spirit.", ["guilty"], ["grace","worth"]],
+
+    ["Galatians 6:9", "And let us not be weary in well doing: for in due season we shall reap, if we faint not.", ["discouraged","overwhelmed"], ["patience","purpose","strength"]],
+    ["1 Corinthians 15:58", "Therefore, my beloved brethren, be ye stedfast, unmoveable, always abounding in the work of the Lord, forasmuch as ye know that your labour is not in vain in the Lord.", ["discouraged"], ["purpose","strength"]],
+    ["2 Corinthians 12:9", "And he said unto me, My grace is sufficient for thee: for my strength is made perfect in weakness. Most gladly therefore will I rather glory in my infirmities, that the power of Christ may rest upon me.", ["discouraged","overwhelmed","guilty","badday"], ["strength","grace"]],
+    ["2 Corinthians 4:16", "For which cause we faint not; but though our outward man perish, yet the inward man is renewed day by day.", ["discouraged","overwhelmed","sad"], ["strength","hope"]],
+    ["Philippians 4:13", "I can do all things through Christ which strengtheneth me.", ["discouraged","overwhelmed","afraid"], ["strength","courage"]],
+    ["Philippians 1:6", "Being confident of this very thing, that he which hath begun a good work in you will perform it until the day of Jesus Christ:", ["discouraged","guilty","doubting"], ["hope","trust","purpose"]],
+    ["James 1:2-4", "My brethren, count it all joy when ye fall into divers temptations; Knowing this, that the trying of your faith worketh patience. But let patience have her perfect work, that ye may be perfect and entire, wanting nothing.", ["badday","discouraged"], ["patience","perspective"]],
+    ["Romans 5:3-5", "And not only so, but we glory in tribulations also: knowing that tribulation worketh patience; And patience, experience; and experience, hope: And hope maketh not ashamed; because the love of God is shed abroad in our hearts by the Holy Ghost which is given unto us.", ["sad","discouraged"], ["hope","patience"]],
+    ["Romans 12:12", "Rejoicing in hope; patient in tribulation; continuing instant in prayer;", ["sad","discouraged","badday"], ["patience","hope"]],
+    ["Romans 15:13", "Now the God of hope fill you with all joy and peace in believing, that ye may abound in hope, through the power of the Holy Ghost.", ["sad","discouraged","anxious"], ["hope","joy"]],
+
+    ["Matthew 5:4", "Blessed are they that mourn: for they shall be comforted.", ["sad"], ["comfort"]],
+    ["2 Corinthians 1:3-4", "Blessed be God, even the Father of our Lord Jesus Christ, the Father of mercies, and the God of all comfort; Who comforteth us in all our tribulation, that we may be able to comfort them which are in any trouble, by the comfort wherewith we ourselves are comforted of God.", ["sad","anxious","lonely"], ["comfort","community"]],
+    ["Revelation 21:4", "And God shall wipe away all tears from their eyes; and there shall be no more death, neither sorrow, nor crying, neither shall there be any more pain: for the former things are passed away.", ["sad"], ["hope","comfort"]],
+    ["John 8:12", "Then spake Jesus again unto them, saying, I am the light of the world: he that followeth me shall not walk in darkness, but shall have the light of life.", ["sad","doubting","discouraged"], ["hope","faith"]],
+
+    ["Matthew 28:20", "...and, lo, I am with you alway, even unto the end of the world.", ["lonely","afraid","sad","doubting"], ["presence"]],
+    ["Hebrews 13:5-6", "For he hath said, I will never leave thee, nor forsake thee. So that we may boldly say, The Lord is my helper, and I will not fear what man shall do unto me.", ["lonely","afraid","anxious"], ["presence","courage","trust"]],
+    ["Matthew 18:20", "For where two or three are gathered together in my name, there am I in the midst of them.", ["lonely"], ["community","presence"]],
+    ["James 4:8", "Draw nigh to God, and he will draw nigh to you.", ["lonely","doubting","guilty"], ["presence","faith"]],
+    ["1 John 3:1", "Behold, what manner of love the Father hath bestowed upon us, that we should be called the sons of God:", ["lonely","guilty","discouraged"], ["worth"]],
+
+    ["2 Timothy 1:7", "For God hath not given us the spirit of fear; but of power, and of love, and of a sound mind.", ["afraid","anxious"], ["courage","calm"]],
+    ["Matthew 14:27", "But straightway Jesus spake unto them, saying, Be of good cheer; it is I; be not afraid.", ["afraid","anxious"], ["courage","presence"]],
+    ["1 John 4:18", "There is no fear in love; but perfect love casteth out fear: because fear hath torment. He that feareth is not made perfect in love.", ["afraid"], ["calm","comfort"]],
+
+    ["1 John 1:9", "If we confess our sins, he is faithful and just to forgive us our sins, and to cleanse us from all unrighteousness.", ["guilty"], ["forgive","grace"]],
+    ["Romans 5:8", "But God commendeth his love toward us, in that, while we were yet sinners, Christ died for us.", ["guilty","doubting","lonely"], ["worth","grace"]],
+    ["2 Corinthians 5:17", "Therefore if any man be in Christ, he is a new creature: old things are passed away; behold, all things are become new.", ["guilty","discouraged","badday"], ["hope","grace"]],
+    ["Ephesians 2:8-9", "For by grace are ye saved through faith; and that not of yourselves: it is the gift of God: Not of works, lest any man should boast.", ["guilty","discouraged"], ["grace","worth"]],
+    ["Hebrews 4:15-16", "For we have not an high priest which cannot be touched with the feeling of our infirmities; but was in all points tempted like as we are, yet without sin. Let us therefore come boldly unto the throne of grace, that we may obtain mercy, and find grace to help in time of need.", ["guilty","doubting","badday"], ["grace","presence","comfort"]],
+
+    ["Mark 9:24", "And straightway the father of the child cried out, and said with tears, Lord, I believe; help thou mine unbelief.", ["doubting"], ["faith","grace"]],
+    ["Hebrews 11:1", "Now faith is the substance of things hoped for, the evidence of things not seen.", ["doubting"], ["faith"]],
+    ["Matthew 7:7", "Ask, and it shall be given you; seek, and ye shall find; knock, and it shall be opened unto you:", ["doubting","discouraged"], ["faith","wisdom"]],
+
+    ["1 Thessalonians 5:16-18", "Rejoice evermore. Pray without ceasing. In every thing give thanks: for this is the will of God in Christ Jesus concerning you.", ["grateful","badday"], ["gratitude","joy"]],
+    ["Philippians 4:4", "Rejoice in the Lord alway: and again I say, Rejoice.", ["grateful"], ["joy"]],
+    ["Philippians 1:3", "I thank my God upon every remembrance of you,", ["grateful"], ["gratitude","community"]],
+    ["Colossians 3:17", "And whatsoever ye do in word or deed, do all in the name of the Lord Jesus, giving thanks to God and the Father by him.", ["grateful"], ["gratitude","purpose"]],
+    ["James 1:17", "Every good gift and every perfect gift is from above, and cometh down from the Father of lights, with whom is no variableness, neither shadow of turning.", ["grateful"], ["gratitude","joy","wisdom"]],
+    ["1 Thessalonians 5:11", "Wherefore comfort yourselves together, and edify one another, even as also ye do.", ["grateful","lonely"], ["community","purpose"]]
+  ].map(function (a) { return { ref: a[0], text: a[1], f: a[2], t: a[3] }; });
+
+
+  /* ---------- Plain-English meanings ----------
+     Written to reflect mainstream, long-standing Christian interpretation (historic and
+     contemporary commentary), not any one denomination's distinctive views. */
+  var MEANING = {
+    "James 1:19-20": "Be quick to listen and slow to speak or get angry. Human anger on its own rarely produces the kind of life God wants.",
+    "Ephesians 4:26-27": "Anger itself isn't the sin; what you do with it is. Deal with it promptly instead of letting it sit and harden into bitterness.",
+    "Ephesians 4:31-32": "Paul tells believers to clear out bitterness, rage, and insults, and to replace them with kindness and compassion, forgiving others because God has already forgiven them in Christ.",
+    "Romans 12:17-18": "Don't repay wrong with wrong. Do what is honorable, and as far as it depends on you, pursue peace, knowing you can't control how others respond.",
+    "Romans 12:21": "Don't let evil beat you or pull you into acting the same way. Answer it with good.",
+    "Colossians 3:13": "Be patient with one another's faults and forgive grievances, using the forgiveness Christ gave you as the pattern.",
+    "Matthew 5:44": "Jesus calls his followers to a radical response to enemies: wish them well and pray for them, even when they mistreat you.",
+    "Luke 6:37": "Don't take the role of harsh judge over other people's hearts. Extend the same forgiveness you hope to receive.",
+    "Philippians 4:6-7": "Instead of being consumed by worry, bring everything to God in prayer with thanks. God's peace, which goes beyond what we can fully explain, will guard your heart and mind.",
+    "Philippians 4:8": "Paul urges believers to deliberately fix their thoughts on what is true, honorable, right, pure, lovely, and admirable.",
+    "1 Peter 5:7": "You can hand your worries over to God, because he genuinely cares about you.",
+    "Matthew 6:34": "Jesus tells his listeners not to borrow tomorrow's worries. Each day has enough challenges of its own.",
+    "Matthew 6:33": "Make God's kingdom and his way of life your first priority, and trust him to care for your basic needs. Jesus says this right after talking about food and clothing.",
+    "Philippians 4:19": "Paul, thanking friends who supported him, assures them that God will meet their needs from his abundant resources. It is a promise of provision, not of every want.",
+    "Luke 12:6-7": "If God doesn't forget even a sparrow, he won't forget you. Jesus uses the image to show how much you matter to him.",
+    "John 14:1": "Jesus says this to disciples who are about to lose him. He invites them to trust him rather than be overwhelmed by fear.",
+    "John 14:27": "Jesus leaves his followers a lasting peace that is different from the world's temporary kind, so they don't have to be ruled by fear.",
+    "Mark 4:39": "When a storm terrified the disciples, Jesus spoke and the sea went calm. It is a picture of his authority over the things that overwhelm us.",
+    "Colossians 3:15": "Let Christ's peace be the deciding influence in your heart, especially as part of a community, and cultivate thankfulness.",
+    "Matthew 11:28-30": "Jesus invites worn-out people to come to him for rest. His 'yoke,' his way of life, is gentler than the burden of constant striving.",
+    "Galatians 6:2": "Believers are meant to help carry one another's heavy loads. That is what living out Christ's way of love looks like.",
+    "James 1:5": "If you lack wisdom, ask God. He gives generously and doesn't scold you for asking.",
+    "Hebrews 12:1-2": "Drop whatever slows you down and keep running with endurance, keeping your eyes on Jesus, who began your faith and will bring it to completion.",
+    "John 16:33": "Jesus is honest that his followers will face trouble, but he offers peace and courage because he has overcome the world.",
+    "Romans 8:28": "This doesn't say everything that happens is good. It says God works through all circumstances, even painful ones, for the good of those who love him. It is a promise of purpose, not a claim that pain doesn't hurt.",
+    "Romans 8:31": "Since God is on our side, nothing that opposes us gets the final word.",
+    "Romans 8:38-39": "Nothing, not death, not life, not any power or circumstance, can separate believers from God's love in Christ.",
+    "Romans 8:1": "For those who belong to Christ, God's verdict is 'no condemnation.' The guilt has been dealt with.",
+    "Galatians 6:9": "Keep doing good even when you're tired. The harvest comes in God's timing, so don't give up.",
+    "1 Corinthians 15:58": "This comes at the end of Paul's chapter on the resurrection. Because of it, work done for the Lord is never wasted, so stay steady.",
+    "2 Corinthians 12:9": "When Paul begged to be relieved of a hardship, God told him his grace was enough, because his power shows up most clearly in human weakness.",
+    "2 Corinthians 4:16": "Even as the body wears down, Paul says the inner life is renewed daily, which is why he doesn't lose heart.",
+    "Philippians 4:13": "Often read as 'I can achieve anything,' but in context Paul has just said he has learned to be content in both plenty and need. Christ gives strength to endure any circumstance.",
+    "Philippians 1:6": "Paul is confident that God, who began a good work in believers, will keep working until it is finished.",
+    "James 1:2-4": "Trials aren't good in themselves, but they can build endurance and maturity, so James urges a long-view, hopeful response.",
+    "Romans 5:3-5": "Suffering builds endurance, endurance builds character, and character builds a hope that rests on God's love and doesn't let us down.",
+    "Romans 12:12": "Stay joyful because of your hope, hold on through hard times, and keep praying.",
+    "Romans 15:13": "This is Paul's prayer that God, the source of hope, would fill believers with joy and peace until hope overflows.",
+    "Matthew 5:4": "In the Beatitudes, Jesus says that people who grieve are blessed, because God will comfort them.",
+    "2 Corinthians 1:3-4": "God is a source of comfort in our troubles, and the comfort we receive equips us to comfort other people.",
+    "Revelation 21:4": "A vision of the future in which God personally wipes away tears and ends death, mourning, and pain.",
+    "John 8:12": "Jesus calls himself the light of the world. Following him means not being left to stumble in the dark.",
+    "Matthew 28:20": "These are Jesus' closing words in Matthew's Gospel: a promise to be with his followers always.",
+    "Hebrews 13:5-6": "God promises never to abandon his people, so believers can face the future without being ruled by fear of what others might do.",
+    "Matthew 18:20": "Jesus promises to be present when his followers gather in his name. It is a comfort to those who feel alone and a nudge to meet with others.",
+    "James 4:8": "Move toward God and he will move toward you. He responds to people who seek him.",
+    "1 John 3:1": "God's love is so great that believers are called his children, and John says that's exactly what they are.",
+    "2 Timothy 1:7": "Paul reminds Timothy that God's gift is not timidity but power, love, and self-discipline.",
+    "Matthew 14:27": "When the disciples were terrified, Jesus told them to take heart because he was with them.",
+    "1 John 4:18": "God's perfect love, when truly grasped, drives out the kind of fear that expects punishment.",
+    "1 John 1:9": "When we honestly admit our wrongs, God is faithful to forgive and to cleanse us.",
+    "Romans 5:8": "God showed his love by sending Christ to die for us while we were still sinners, not after we cleaned ourselves up.",
+    "2 Corinthians 5:17": "In Christ a person is made new, and the old life no longer defines them.",
+    "Ephesians 2:8-9": "Salvation is a gift received by faith, not something earned, so there is nothing to prove and nothing to boast about.",
+    "Hebrews 4:15-16": "Jesus understands human weakness, so we can approach God with confidence to receive mercy and help when we need it.",
+    "Mark 9:24": "A father honestly admits he has both faith and doubt, and Jesus helps his son anyway. Honest doubt can be brought to him.",
+    "Hebrews 11:1": "Faith is confident trust in what God has promised, even though it can't be seen yet.",
+    "Matthew 7:7": "Keep asking, seeking, and knocking. Jesus encourages persistent prayer and trust that God answers well.",
+    "1 Thessalonians 5:16-18": "Stay joyful, keep praying, and give thanks in every circumstance. This doesn't mean being thankful for every circumstance.",
+    "Philippians 4:4": "Paul wrote this while in prison. It is joy rooted in who God is, not in how things are going.",
+    "Philippians 1:3": "Paul thanks God every time he thinks of his friends in Philippi. Gratitude for the people in your life is a way of honoring God.",
+    "Colossians 3:17": "Do everything as a representative of Jesus, giving thanks to God.",
+    "James 1:17": "Every good thing ultimately comes from God, who is steady and doesn't change like shifting shadows.",
+    "1 Thessalonians 5:11": "Encourage and build one another up, which is what Paul says this church was already doing."
+  };
+
+  /* ---------- State ---------- */
+  var app = document.getElementById("app");
+  var state;
+  function reset() { state = { feeling: null, step: 0, answers: [], crisis: false, shown: {} }; }
+  reset();
+
+  /* ---------- Helpers ---------- */
+  function el(tag, attrs, kids) {
+    var n = document.createElement(tag);
+    if (attrs) Object.keys(attrs).forEach(function (k) {
+      if (k === "class") n.className = attrs[k];
+      else if (k === "text") n.textContent = attrs[k];
+      else n.setAttribute(k, attrs[k]);
+    });
+    (kids || []).forEach(function (c) { if (c) n.appendChild(c); });
+    return n;
+  }
+  function feelingById(id) { return FEELINGS.filter(function (f) { return f.id === id; })[0]; }
+
+  function progress(stepIndex) {
+    var dots = el("div", { class: "dots", "aria-hidden": "true" }, [
+      el("span", { class: "dot on" }),
+      el("span", { class: "dot " + (stepIndex >= 1 ? "on" : "") }),
+      el("span", { class: "dot " + (stepIndex >= 2 ? "on" : "") })
+    ]);
+    var label = stepIndex === 0 ? "Question 1 of 2" : "Question 2 of 2";
+    return el("div", { class: "progress" }, [dots, el("span", { text: label })]);
+  }
+
+  var firstRender = true;
+  function render(view) {
+    app.innerHTML = "";
+    app.appendChild(view);
+    if (firstRender) { firstRender = false; return; }
+    var h = view.querySelector("h1, h2");
+    if (h) { h.setAttribute("tabindex", "-1"); h.focus(); }
+  }
+
+  /* ---------- Views ---------- */
+  function viewFeelings() {
+    var grid = el("div", { class: "choices" });
+    FEELINGS.forEach(function (f) {
+      var b = el("button", { class: "choice", type: "button", text: f.label });
+      b.addEventListener("click", function () { state.feeling = f.id; state.step = 0; state.answers = []; viewQuestion(); });
+      grid.appendChild(b);
+    });
+    var v = el("section", { class: "enter" }, [
+      el("h1", { class: "prompt", text: "How are you feeling right now?" }),
+      el("p", { class: "hint", text: "Pick the closest one. I'll ask two quick questions, then share three New Testament verses for the moment." }),
+      grid
+    ]);
+    render(v);
+  }
+
+  function viewQuestion() {
+    var f = feelingById(state.feeling);
+    var q = f.qs[state.step];
+    var grid = el("div", { class: "choices" });
+    q.opts.forEach(function (o) {
+      var b = el("button", { class: "choice", type: "button", text: o[0] });
+      b.addEventListener("click", function () {
+        state.answers[state.step] = { tags: o[1], weight: state.step === 0 ? 1 : 1.5 };
+        if (o[2] === "crisis") state.crisis = true;
+        if (state.step === 0 && o[2] !== "crisis") state.crisis = false;
+        if (state.step < f.qs.length - 1) { state.step++; viewQuestion(); }
+        else { state.shown = {}; viewResults(); }
+      });
+      grid.appendChild(b);
+    });
+    var back = el("button", { class: "link-btn", type: "button", text: state.step === 0 ? "Choose a different feeling" : "Back" });
+    back.addEventListener("click", function () {
+      if (state.step === 0) { reset(); viewFeelings(); }
+      else { state.step--; viewQuestion(); }
+    });
+    var v = el("section", { class: "enter" }, [
+      progress(state.step),
+      el("h2", { class: "prompt", text: q.q }),
+      el("p", { class: "hint", text: f.label + "." }),
+      grid,
+      el("div", { class: "nav" }, [back])
+    ]);
+    render(v);
+  }
+
+  function pickVerses() {
+    var weights = {};
+    state.answers.forEach(function (a) { a.tags.forEach(function (t) { weights[t] = (weights[t] || 0) + a.weight; }); });
+    function pool() {
+      return V.filter(function (v) { return v.f.indexOf(state.feeling) !== -1 && !state.shown[v.ref]; });
+    }
+    var p = pool();
+    if (p.length < 3) { state.shown = {}; p = pool(); }
+    var scored = p.map(function (v) {
+      var s = v.t.reduce(function (acc, t) { return acc + (weights[t] || 0); }, 0);
+      return { v: v, s: s + Math.random() * 0.9 };
+    }).sort(function (a, b) { return b.s - a.s; });
+    var top = scored.slice(0, 3).map(function (x) { return x.v; });
+    top.forEach(function (v) { state.shown[v.ref] = true; });
+    return { verses: top, weights: weights };
+  }
+
+  function copyText(txt, btn) {
+    function done() { var old = btn.textContent; btn.textContent = "Copied"; setTimeout(function () { btn.textContent = old; }, 1400); }
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(txt).then(done, fallback);
+    } else { fallback(); }
+    function fallback() {
+      var ta = document.createElement("textarea");
+      ta.value = txt; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand("copy"); done(); } catch (e) { btn.textContent = "Press Ctrl+C"; }
+      document.body.removeChild(ta);
+    }
+  }
+
+  function verseCard(v, weights) {
+    var matched = v.t.filter(function (t) { return weights[t]; }).slice(0, 3).map(function (t) { return TAG_LABEL[t]; });
+    var copy = el("button", { class: "copy-btn", type: "button", text: "Copy", "aria-label": "Copy " + v.ref });
+    copy.addEventListener("click", function () { copyText(v.ref + " (KJV): " + v.text, copy); });
+    var link = el("a", { class: "more-link", href: "https://www.biblegateway.com/passage/?search=" + encodeURIComponent(v.ref) + "&version=NIV", target: "_blank", rel: "noopener noreferrer", text: "Read in other translations" });
+    var meaning = MEANING[v.ref] ? el("p", { class: "meaning" }, [el("strong", { text: "In plain English: " }), document.createTextNode(MEANING[v.ref])]) : null;
+    return el("article", { class: "verse" }, [
+      el("h3", { text: v.ref }),
+      el("blockquote", { text: v.text }),
+      meaning,
+      matched.length ? el("p", { class: "why", text: "Speaks to: " + matched.join(", ") }) : null,
+      el("div", { class: "row" }, [link, copy])
+    ]);
+  }
+
+  function viewResults() {
+    var f = feelingById(state.feeling);
+    var res = pickVerses();
+    var list = el("div", { class: "results" });
+    res.verses.forEach(function (v) { list.appendChild(verseCard(v, res.weights)); });
+
+    var more = el("button", { class: "btn", type: "button", text: "Show me different verses" });
+    more.addEventListener("click", viewResults);
+    var again = el("button", { class: "btn ghost", type: "button", text: "Start over" });
+    again.addEventListener("click", function () { reset(); viewFeelings(); });
+    var back = el("button", { class: "link-btn", type: "button", text: "Change my answers" });
+    back.addEventListener("click", function () { state.step = 0; state.answers = []; viewQuestion(); });
+
+    var crisis = state.crisis ? el("div", { class: "alert", role: "note" }, [
+      el("strong", { text: "You don't have to carry this alone. " }),
+      document.createTextNode("If things feel hopeless or you're thinking about hurting yourself, please call or text 988 (U.S. Suicide & Crisis Lifeline) right now, or reach out to someone you trust. If you're outside the U.S., contact your local emergency number.")
+    ]) : null;
+
+    var v = el("section", { class: "enter" }, [
+      el("h2", { class: "prompt", text: "Three verses for you" }),
+      el("p", { class: "recap", text: f.label + "." }),
+      crisis,
+      list,
+      el("div", { class: "nav" }, [more, again]),
+      el("div", { class: "nav" }, [back])
+    ]);
+    render(v);
+  }
+
+  /* ---------- Theme toggle ---------- */
+  var root = document.documentElement;
+  document.getElementById("themeBtn").addEventListener("click", function () {
+    var cur = root.getAttribute("data-theme");
+    if (!cur) cur = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    root.setAttribute("data-theme", cur === "dark" ? "light" : "dark");
+  });
+
+  viewFeelings();
+})();
+</script>
+</body>
+</html>
